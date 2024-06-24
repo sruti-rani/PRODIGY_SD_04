@@ -1,0 +1,197 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudoku Game</title>
+    <style>
+      #sudoku-board {
+        display: grid;
+        grid-template-columns: repeat(9, 40px);
+        grid-template-rows: repeat(9, 40px);
+        gap: 1px;
+        border: 1px solid black;
+        width: 360px;
+        height: 360px;
+      }
+
+      .cell {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 20px;
+        border: 1px solid black;
+        background-color: #f0f0f0;
+        color: #333;
+      }
+
+      .cell:focus {
+        outline: none;
+        background-color: rgb(201, 201, 42);
+      }
+
+      .clue {
+        background-color: #e12222;
+      }
+
+      .solved {
+        background-color: #1fcf1f;
+      }
+
+      #solve-button {
+        margin-top: 10px;
+        padding: 10px 20px;
+        font-size: 18px;
+        background-color: #0074d9;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #result-message {
+        margin-top: 10px;
+        font-size: 18px;
+        color: #0074d9;
+      }
+    </style>
+  </head>
+  <body>
+    <center>
+      <h1>Sudoku Game</h1>
+      <div id="sudoku-board"></div>
+      <br />
+      <button id="solve-button">Solve</button>
+      <div id="result-message"></div>
+    </center>
+    <script>
+      const board = [
+        [0, 1, 8, 0, 0, 2, 3, 0, 4],
+        [0, 0, 3, 5, 0, 0, 0, 0, 0],
+        [5, 2, 4, 8, 9, 0, 0, 0, 0],
+        [1, 0, 5, 0, 7, 0, 4, 0, 6],
+        [0, 0, 7, 0, 0, 0, 9, 0, 0],
+        [2, 0, 9, 0, 4, 0, 5, 0, 8],
+        [0, 0, 0, 0, 8, 9, 6, 4, 3],
+        [0, 0, 0, 0, 0, 7, 2, 0, 0],
+        [3, 0, 1, 6, 8, 0, 7, 8, 0],
+      ];
+
+      const boardContainer = document.getElementById("sudoku-board");
+      const resultMessage = document.getElementById("result-message");
+
+      function createBoard() {
+        for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+            const cell = document.createElement("input");
+            cell.className = "cell";
+            cell.setAttribute("type", "number");
+            cell.setAttribute("min", "1");
+            cell.setAttribute("max", "9");
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.value = board[row][col] === 0 ? "" : board[row][col];
+            boardContainer.appendChild(cell);
+          }
+        }
+      }
+
+      createBoard();
+
+      boardContainer.addEventListener("input", (event) => {
+        const cell = event.target;
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        board[row][col] = parseInt(cell.value) || 0;
+      });
+
+      boardContainer.addEventListener("keydown", (event) => {
+        if (!/^\d$/.test(event.key) && event.key !== "Backspace") {
+          event.preventDefault();
+        }
+      });
+
+      async function solveSudoku() {
+        const solved = await solveStep(0, 0);
+
+        if (solved) {
+          console.log("Solved");
+          resultMessage.textContent = "Solved!";
+        } else {
+          console.log("Not solved");
+          resultMessage.textContent = "The given puzzle can't solved.";
+        }
+      }
+
+      async function solveStep(row, col) {
+        if (row === 9) {
+          row = 0;
+          if (++col === 9) {
+            return true;
+          }
+        }
+
+        if (board[row][col] !== 0) {
+          return await solveStep(row + 1, col);
+        }
+
+        for (let num = 1; num <= 9; num++) {
+          if (isSafe(num, row, col)) {
+            board[row][col] = num;
+            const cell = boardContainer.querySelector(
+              `[data-row="${row}"][data-col="${col}"]`
+            );
+            cell.value = num;
+
+            if (await solveStep(row + 1, col)) {
+              return true;
+            }
+            board[row][col] = 0;
+            cell.value = "";
+            await sleep(50);
+          }
+        }
+
+        return false;
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function isSafe(num, row, col) {
+        return (
+          isSafeRow(num, row) &&
+          isSafeCol(num, col) &&
+          isSafeBox(num, row - (row % 3), col - (col % 3))
+        );
+      }
+
+      function isSafeRow(num, row) {
+        return !board[row].includes(num);
+      }
+
+      function isSafeCol(num, col) {
+        for (let i = 0; i < 9; i++) {
+          if (board[i][col] === num) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function isSafeBox(num, startRow, startCol) {
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            if (board[row + startRow][col + startCol] === num) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      const solveButton = document.getElementById("solve-button");
+      solveButton.addEventListener("click", solveSudoku);
+    </script>
+  </body>
+</html>
